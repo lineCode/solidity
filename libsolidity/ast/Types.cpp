@@ -1989,8 +1989,7 @@ TypePointer TupleType::closestTemporaryType(TypePointer const& _targetType) cons
 
 FunctionType::FunctionType(FunctionDefinition const& _function, bool _isInternal):
 	m_kind(_isInternal ? Kind::Internal : Kind::External),
-	m_isConstant(_function.isDeclaredConst()),
-	m_isPayable(_isInternal ? false : _function.isPayable()),
+	m_stateMutability(_function.stateMutability()),
 	m_declaration(&_function)
 {
 	TypePointers params;
@@ -2019,7 +2018,7 @@ FunctionType::FunctionType(FunctionDefinition const& _function, bool _isInternal
 }
 
 FunctionType::FunctionType(VariableDeclaration const& _varDecl):
-	m_kind(Kind::External), m_isConstant(true), m_declaration(&_varDecl)
+	m_kind(Kind::External), m_stateMutability(StateMutability::View), m_declaration(&_varDecl)
 {
 	TypePointers paramTypes;
 	vector<string> paramNames;
@@ -2079,7 +2078,7 @@ FunctionType::FunctionType(VariableDeclaration const& _varDecl):
 }
 
 FunctionType::FunctionType(EventDefinition const& _event):
-	m_kind(Kind::Event), m_isConstant(true), m_declaration(&_event)
+	m_kind(Kind::Event), m_stateMutability(StateMutability::View), m_declaration(&_event)
 {
 	TypePointers params;
 	vector<string> paramNames;
@@ -2096,14 +2095,10 @@ FunctionType::FunctionType(EventDefinition const& _event):
 
 FunctionType::FunctionType(FunctionTypeName const& _typeName):
 	m_kind(_typeName.visibility() == VariableDeclaration::Visibility::External ? Kind::External : Kind::Internal),
-	m_isConstant(_typeName.isDeclaredConst()),
-	m_isPayable(_typeName.isPayable())
+	m_stateMutability(_typeName.stateMutability())
 {
 	if (_typeName.isPayable())
-	{
 		solAssert(m_kind == Kind::External, "Internal payable function type used.");
-		solAssert(!m_isConstant, "Payable constant function");
-	}
 	for (auto const& t: _typeName.parameterTypes())
 	{
 		solAssert(t->annotation().type, "Type not set for parameter.");
@@ -2228,7 +2223,7 @@ bool FunctionType::operator==(Type const& _other) const
 
 	if (m_kind != other.m_kind)
 		return false;
-	if (m_isConstant != other.isConstant())
+	if (isConstant() != other.isConstant())
 		return false;
 
 	if (m_parameterTypes.size() != other.m_parameterTypes.size() ||
@@ -2292,9 +2287,9 @@ string FunctionType::toString(bool _short) const
 	for (auto it = m_parameterTypes.begin(); it != m_parameterTypes.end(); ++it)
 		name += (*it)->toString(_short) + (it + 1 == m_parameterTypes.end() ? "" : ",");
 	name += ")";
-	if (m_isConstant)
+	if (isConstant())
 		name += " constant";
-	if (m_isPayable)
+	if (isPayable())
 		name += " payable";
 	if (m_kind == Kind::External)
 		name += " external";
@@ -2392,7 +2387,7 @@ FunctionTypePointer FunctionType::interfaceFunctionType() const
 		paramTypes, retParamTypes,
 		m_parameterNames, m_returnParameterNames,
 		m_kind, m_arbitraryParameters,
-		m_declaration, m_isConstant, m_isPayable
+		m_declaration, isConstant(), isPayable()
 	);
 }
 
@@ -2409,7 +2404,7 @@ MemberList::MemberMap FunctionType::nativeMembers(ContractDefinition const*) con
 		MemberList::MemberMap members;
 		if (m_kind != Kind::BareDelegateCall && m_kind != Kind::DelegateCall)
 		{
-			if (m_isPayable)
+			if (isPayable())
 				members.push_back(MemberList::Member(
 					"value",
 					make_shared<FunctionType>(
@@ -2575,8 +2570,8 @@ TypePointer FunctionType::copyAndSetGasOrValue(bool _setGas, bool _setValue) con
 		m_kind,
 		m_arbitraryParameters,
 		m_declaration,
-		m_isConstant,
-		m_isPayable,
+		isConstant(),
+		isPayable(),
 		m_gasSet || _setGas,
 		m_valueSet || _setValue,
 		m_bound
@@ -2625,8 +2620,8 @@ FunctionTypePointer FunctionType::asMemberFunction(bool _inLibrary, bool _bound)
 		kind,
 		m_arbitraryParameters,
 		m_declaration,
-		m_isConstant,
-		m_isPayable,
+		isConstant(),
+		isPayable(),
 		m_gasSet,
 		m_valueSet,
 		_bound

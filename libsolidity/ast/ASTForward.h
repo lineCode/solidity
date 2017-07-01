@@ -95,6 +95,8 @@ using ASTPointer = std::shared_ptr<T>;
 
 using ASTString = std::string;
 
+// How the function can mutate the EVM state.
+enum class StateMutability { Pure, View, NonPayable, Payable };
 
 }
 }
