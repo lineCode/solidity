@@ -3128,7 +3128,7 @@ BOOST_AUTO_TEST_CASE(event_really_lots_of_data)
 	callContractFunction("deposit()");
 	BOOST_REQUIRE_EQUAL(m_logs.size(), 1);
 	BOOST_CHECK_EQUAL(m_logs[0].address, m_contractAddress);
-	BOOST_CHECK(m_logs[0].data == encodeArgs(10, 0x60, 15, 4) + FixedHash<4>(dev::keccak256("deposit()")).asBytes());
+	BOOST_CHECK(m_logs[0].data == encodeArgs(10, 0x60, 15, 4, asString(FixedHash<4>(dev::keccak256("deposit()")).asBytes())));
 	BOOST_REQUIRE_EQUAL(m_logs[0].topics.size(), 1);
 	BOOST_CHECK_EQUAL(m_logs[0].topics[0], dev::keccak256(string("Deposit(uint256,bytes,uint256)")));
 }
@@ -4436,6 +4436,7 @@ BOOST_AUTO_TEST_CASE(array_copy_storage_abi)
 			uint8[] x;
 			uint16[] y;
 			uint24[] z;
+			uint24[][] w;
 			function test1() returns (uint8[]) {
 				for (uint i = 0; i < 101; ++i)
 					x.push(uint8(i));
@@ -4451,6 +4452,13 @@ BOOST_AUTO_TEST_CASE(array_copy_storage_abi)
 					z.push(uint24(i));
 				return z;
 			}
+			function test4() returns (uint24[][]) {
+				w.length = 5;
+				for (uint i = 0; i < 5; ++i)
+					for (uint j = 0; j < 101; ++j)
+						w[i].push(uint24(j));
+				return w;
+			}
 		}
 	)";
 	compileAndRun(sourceCode);
@@ -4460,6 +4468,14 @@ BOOST_AUTO_TEST_CASE(array_copy_storage_abi)
 	BOOST_CHECK(callContractFunction("test1()") == encodeArgs(0x20, 101) + valueSequence);
 	BOOST_CHECK(callContractFunction("test2()") == encodeArgs(0x20, 101) + valueSequence);
 	BOOST_CHECK(callContractFunction("test3()") == encodeArgs(0x20, 101) + valueSequence);
+	BOOST_CHECK(callContractFunction("test4()") ==
+		encodeArgs(0x20, 5, 0xa0, 0xa0 + 102 * 32 * 1, 0xa0 + 102 * 32 * 2, 0xa0 + 102 * 32 * 3, 0xa0 + 102 * 32 * 4) +
+		encodeArgs(101) + valueSequence +
+		encodeArgs(101) + valueSequence +
+		encodeArgs(101) + valueSequence +
+		encodeArgs(101) + valueSequence +
+		encodeArgs(101) + valueSequence
+	);
 }
 
 BOOST_AUTO_TEST_CASE(array_copy_storage_abi_signed)
