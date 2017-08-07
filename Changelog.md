@@ -2,6 +2,7 @@
 
 Features:
  * Type Checker: Show unimplemented function if trying to instantiate an abstract class.
+ * Static Analyzer: Warn about large storage structures.
 
 Bugfixes:
  * Code Generator: ``.delegatecall()`` should always return execution outcome.

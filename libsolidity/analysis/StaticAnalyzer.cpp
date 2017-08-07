@@ -92,6 +92,16 @@ bool StaticAnalyzer::visit(VariableDeclaration const& _variable)
 			// This is not a no-op, the entry might pre-exist.
 			m_localVarUseCount[&_variable] += 0;
 	}
+	else if (_variable.isStateVariable())
+	{
+		set<StructDefinition const*> structsSeen;
+		if (structureSize(*_variable.type(), structsSeen) >= bigint(1) << 64)
+			m_errorReporter.warning(
+				_variable.location(),
+				"Variable covers a large part of storage and thus makes collisions likely. "
+				"Either use mappings or dynamic arrays with only small size increments per transaction."
+		);
+	}
 	return true;
 }
 
@@ -159,4 +169,35 @@ bool StaticAnalyzer::visit(InlineAssembly const& _inlineAssembly)
 	}
 
 	return true;
+}
+
+bigint StaticAnalyzer::structureSize(Type const& _type, set<StructDefinition const*>& _structsSeen)
+{
+	switch (_type.category())
+	{
+	case Type::Category::Array:
+	{
+		auto const& t = dynamic_cast<ArrayType const&>(_type);
+		return structureSize(*t.baseType(), _structsSeen) * (t.isDynamicallySized() ? 1 : t.length());
+	}
+	case Type::Category::Struct:
+	{
+		auto const& t = dynamic_cast<StructType const&>(_type);
+		bigint size = 1;
+		if (!_structsSeen.count(&t.structDefinition()))
+		{
+			_structsSeen.insert(&t.structDefinition());
+			for (auto const& m: t.members(nullptr))
+				size += structureSize(*m.type, _structsSeen);
+		}
+		return size;
+	}
+	case Type::Category::Mapping:
+	{
+		return structureSize(*dynamic_cast<MappingType const&>(_type).valueType(), _structsSeen);
+	}
+	default:
+		break;
+	}
+	return bigint(1);
 }
