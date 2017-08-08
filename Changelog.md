@@ -2,6 +2,7 @@
 
 Features:
  * Type Checker: Show unimplemented function if trying to instantiate an abstract class.
+ * Metadata: Store experimental flag in metadata CBOR.
 
 Bugfixes:
  * Code Generator: ``.delegatecall()`` should always return execution outcome.
