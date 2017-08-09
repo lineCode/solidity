@@ -84,7 +84,7 @@ bool TypeChecker::visit(ContractDefinition const& _contract)
 	{
 		if (!function->returnParameters().empty())
 			m_errorReporter.typeError(function->returnParameterList()->location(), "Non-empty \"returns\" directive for constructor.");
-		if (function->isDeclaredConst())
+		if (function->stateMutability() == StateMutability::View)
 			m_errorReporter.typeError(function->location(), "Constructor cannot be defined as constant.");
 		if (function->visibility() != FunctionDefinition::Visibility::Public && function->visibility() != FunctionDefinition::Visibility::Internal)
 			m_errorReporter.typeError(function->location(), "Constructor must be public or internal.");
@@ -104,7 +104,7 @@ bool TypeChecker::visit(ContractDefinition const& _contract)
 				fallbackFunction = function;
 				if (_contract.isLibrary())
 					m_errorReporter.typeError(fallbackFunction->location(), "Libraries cannot have fallback functions.");
-				if (fallbackFunction->isDeclaredConst())
+				if (fallbackFunction->stateMutability() == StateMutability::View)
 					m_errorReporter.typeError(fallbackFunction->location(), "Fallback function cannot be declared constant.");
 				if (!fallbackFunction->parameters().empty())
 					m_errorReporter.typeError(fallbackFunction->parameterList().location(), "Fallback function cannot take parameters.");
@@ -286,7 +286,7 @@ void TypeChecker::checkContractIllegalOverrides(ContractDefinition const& _contr
 					continue;
 				if (
 					overriding->visibility() != function->visibility() ||
-					overriding->isDeclaredConst() != function->isDeclaredConst() ||
+					overriding->stateMutability() != function->stateMutability()
 					overriding->isPayable() != function->isPayable() ||
 					overridingType != functionType
 				)
