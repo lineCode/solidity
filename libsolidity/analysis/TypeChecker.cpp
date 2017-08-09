@@ -286,8 +286,7 @@ void TypeChecker::checkContractIllegalOverrides(ContractDefinition const& _contr
 					continue;
 				if (
 					overriding->visibility() != function->visibility() ||
-					overriding->stateMutability() != function->stateMutability()
-					overriding->isPayable() != function->isPayable() ||
+					overriding->stateMutability() != function->stateMutability() ||
 					overridingType != functionType
 				)
 					m_errorReporter.typeError(overriding->location(), "Override changes extended function signature.");
