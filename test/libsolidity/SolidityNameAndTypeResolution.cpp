@@ -4762,15 +4762,6 @@ BOOST_AUTO_TEST_CASE(function_variable_mixin)
        CHECK_ERROR(text, DeclarationError, "");
 }
 
-
-BOOST_AUTO_TEST_CASE(payable_constant_conflict)
-{
-	char const* text = R"(
-		contract C { function f() payable constant {} }
-	)";
-	CHECK_ERROR(text, TypeError, "");
-}
-
 BOOST_AUTO_TEST_CASE(calling_payable)
 {
 	char const* text = R"(
